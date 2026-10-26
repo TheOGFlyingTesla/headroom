@@ -4,6 +4,8 @@ Headroom keeps two things in your Mac's menu bar: available disk space and your 
 
 The card shows when your allowance resets, including the date and local time. You can drag it by the heading or readings and close it when you're done. Floating starts off each time you launch the app.
 
+![Headroom floating card showing example disk space, weekly Codex allowance, and next reset date.](docs/assets/headroom.jpg)
+
 ## Requirements
 
 - macOS 14 or later.
