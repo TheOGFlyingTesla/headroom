@@ -1,0 +1,18 @@
+.build/
+dist/
+.DS_Store
+.swiftpm/
+
+# Local workspace records and machine-specific measurements.
+.codex/
+docs/codex/
+*.log
+
+# Credentials and signing material never belong in the repository.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileprovision
