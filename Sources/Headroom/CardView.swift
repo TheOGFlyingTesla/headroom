@@ -38,19 +38,19 @@ struct CardView: View {
                        stale: monitor.diskError != nil)
                 Rectangle().fill(.primary.opacity(0.09)).frame(width: 1, height: 82)
                 metric(title: "Codex", symbol: "circle.hexagongrid",
-                       value: monitor.weekly.map { "\(Int($0.remaining.rounded()))%" } ?? "—",
-                       caption: "weekly remaining",
-                       fraction: monitor.weekly.map { $0.remaining / 100 }, stale: monitor.stale)
+                       value: monitor.codexValue,
+                       caption: monitor.codexCaption,
+                       fraction: monitor.showCredits ? nil : monitor.weekly.map { $0.remaining / 100 }, stale: monitor.stale)
             }
             .floatingDragSurface(isFloating)
 
-            if let error = monitor.diskError ?? monitor.quotaError {
+            if let error = monitor.diskError ?? monitor.readingError {
                 Label(error, systemImage: "exclamationmark.circle")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true).padding(.top, 14)
             }
 
-            if let reset = monitor.weekly?.resetDate {
+            if !monitor.showCredits, let reset = monitor.weekly?.resetDate {
                 HStack {
                     Text("Next reset")
                     Spacer()
@@ -62,12 +62,14 @@ struct CardView: View {
 
             if !isFloating {
                 Divider().padding(.vertical, 16)
+                Toggle("Show credits", isOn: $monitor.showCredits)
+                    .toggleStyle(.switch).controlSize(.mini).padding(.bottom, 12)
                 Toggle("Floating panel", isOn: Binding(get: { monitor.floating }, set: { _ in toggleFloating() }))
                     .toggleStyle(.switch).controlSize(.mini)
                 Toggle("Numbers in menu bar", isOn: $monitor.showNumbers)
                     .toggleStyle(.switch).controlSize(.mini).padding(.top, 12)
                 HStack {
-                    if monitor.refreshing && monitor.weekly == nil {
+                    if monitor.refreshing && monitor.updatedAt == nil {
                         Text("Connecting to Codex…")
                     } else if monitor.stale {
                         Text("Last reading may be out of date")
@@ -100,6 +102,7 @@ struct CardView: View {
                 }
             }
             .frame(height: 4).padding(.top, 5)
+            .opacity(fraction == nil ? 0 : 1)
             .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

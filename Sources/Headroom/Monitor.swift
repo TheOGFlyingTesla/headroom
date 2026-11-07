@@ -6,6 +6,7 @@ import HeadroomCore
 final class Monitor: ObservableObject {
     @Published private(set) var disk: DiskReading?
     @Published private(set) var weekly: QuotaWindow?
+    @Published private(set) var credits: CreditBalance?
     @Published private(set) var diskError: String?
     @Published private(set) var quotaError: String?
     @Published private(set) var updatedAt: Date?
@@ -13,6 +14,20 @@ final class Monitor: ObservableObject {
     @Published var floating = false
     @Published var showNumbers = UserDefaults.standard.object(forKey: "showNumbers") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showNumbers, forKey: "showNumbers") }
+    }
+    @Published var showCredits = UserDefaults.standard.bool(forKey: "showCredits") {
+        didSet { UserDefaults.standard.set(showCredits, forKey: "showCredits") }
+    }
+    var codexValue: String {
+        if showCredits { return credits?.formatted ?? "—" }
+        return weekly.map { "\(Int($0.remaining.rounded()))%" } ?? "—"
+    }
+    var codexCaption: String { showCredits ? "credits left" : "weekly remaining" }
+    var readingError: String? {
+        if let quotaError { return quotaError }
+        guard updatedAt != nil else { return nil }
+        if showCredits { return credits?.formatted == nil ? "No Codex credit balance reported" : nil }
+        return weekly == nil ? "No weekly Codex allowance reported" : nil
     }
     let client = CodexClient()
     private var timer: Timer?
@@ -23,7 +38,6 @@ final class Monitor: ObservableObject {
     var stale: Bool { quotaError != nil || (updatedAt.map { Date().timeIntervalSince($0) > 180 } ?? false) }
 
     func start() {
-        client.onUpdate = { [weak self] weekly in self?.accept(weekly) }
         sampleDisk()
         refreshQuota()
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -52,8 +66,9 @@ final class Monitor: ObservableObject {
         catch { diskError = error.localizedDescription }
     }
 
-    private func accept(_ weekly: QuotaWindow) {
-        self.weekly = weekly
+    private func accept(_ response: QuotaResponse) {
+        self.weekly = response.weekly
+        self.credits = response.credits
         quotaError = nil
         updatedAt = Date()
         retryInterval = 60
@@ -66,8 +81,8 @@ final class Monitor: ObservableObject {
         Task {
             defer { refreshing = false }
             do {
-                let weekly = try await client.readWeekly()
-                if !sleeping { accept(weekly) }
+                let response = try await client.readQuota()
+                if !sleeping { accept(response) }
             } catch {
                 if !sleeping {
                     quotaError = error.localizedDescription

@@ -1,6 +1,6 @@
 # Headroom
 
-I made Headroom because I kept checking the same two things: available disk space and my remaining Codex allowance. It keeps both in the Mac menu bar, with an optional floating card you can put where you want it.
+I made Headroom because I kept checking the same two things: available disk space and my remaining Codex allowance or credits. It keeps both in the Mac menu bar, with an optional floating card you can put where you want it.
 
 The card shows when your allowance resets, including the date and local time. You can drag it by the heading or readings and close it when you're done. Floating starts off each time you launch the app.
 
@@ -11,17 +11,17 @@ The image above is an illustration with example readings of weekly allowance mod
 ## What it shows
 
 - Available disk space, refreshed every 30 seconds.
-- Remaining weekly Codex allowance, refreshed about once a minute.
+- Remaining weekly Codex allowance or credit balance, refreshed about once a minute.
 - The date and local time of the next weekly reset.
 - An optional floating card you can drag around, plus launch at login.
 
 The floating card starts off at launch. You can hide the menu bar numbers and keep just the icon if you prefer.
 
-## Credits display update
+## Switch between allowance and credits
 
-A newer local build adds a **Show credits** switch. It replaces the weekly percentage with credits left in both the menu bar and floating card, remembers the selection, and uses the same quota request. The weekly reset row is hidden in credit mode.
+Turn on **Show credits** in the menu to replace the weekly percentage with credits left in both the menu bar and floating card. Headroom remembers your choice. Turn it off to return to weekly allowance and the next reset date.
 
-That source update has not been published here yet. Building the current public source gives you the weekly allowance display described below.
+Credit balances show up to two decimal places. They are credits, not a dollar amount. An unlimited balance shows ∞. Missing balances stay unavailable rather than becoming zero.
 
 ## Requirements
 
@@ -62,9 +62,9 @@ Run the installer again after code changes to update the installed copy. A regul
 
 Disk space updates every 30 seconds. It uses macOS's available-capacity estimate, including space reclaimable for important usage, so it can differ from `df`. It does not scan your folders.
 
-Codex usage updates about once a minute, with slower retries when the connection fails. Headroom selects the seven-day quota window and shows the remaining percentage and next reset. Failed readings are marked as stale. If your account does not report a weekly window, Headroom says so.
+Codex usage updates about once a minute, with slower retries when the connection fails. Headroom selects the seven-day quota window and shows the remaining percentage and next reset in allowance mode. Credit mode uses the balance from the same response, so switching displays adds no network requests. Only full read responses replace the readings; partial notifications cannot erase a known balance. Failed readings are marked as stale. If your account does not report the selected reading, Headroom says so.
 
-Headroom uses one installed Codex CLI helper over private pipes. It does not start model turns, read credential files, log account responses, or run a hosted backend. Account responses stay in memory. The CLI handles its own authentication, network connections, configuration, and storage. Headroom stores your menu bar preference and floating-card position locally. Disk readings stay on your Mac. The Codex CLI makes the authenticated network requests needed to retrieve your account allowance.
+Headroom uses one installed Codex CLI helper over private pipes. It does not start model turns, read credential files, log account responses, or run a hosted backend. Account responses stay in memory. The CLI handles its own authentication, network connections, configuration, and storage. Headroom stores your display choice, menu bar preference, and floating-card position locally. Disk readings stay on your Mac. The Codex CLI makes the authenticated network requests needed to retrieve your account allowance.
 
 Both the app and helper contribute to resource use. There is one tolerant refresh timer and no continuous animation. Measure on your own Mac with `python3 script/measure_idle.py` if you'd like to check the cost.
 

@@ -32,10 +32,10 @@ struct HeadroomMain {
             let client = CodexClient()
             do {
                 let disk = try DiskReading.read()
-                let quota = try await client.readWeekly()
+                let quota = try await client.readQuota()
                 print("Disk available: \(disk.formatted)")
-                print("Codex weekly remaining: \(Int(quota.remaining))%")
-                print("Weekly duration: \(quota.windowDurationMins ?? 0) minutes")
+                print("Codex weekly remaining: \(quota.weekly.map { "\(Int($0.remaining))%" } ?? "unavailable")")
+                print("Codex credits left: \(quota.credits?.formatted ?? "unavailable")")
                 client.stop()
             } catch {
                 client.stop()
@@ -130,11 +130,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func updateStatus() {
         let disk = monitor.diskError == nil ? (monitor.disk?.formatted ?? "—") : "—"
-        let weekly = monitor.weekly.map { "\(Int($0.remaining.rounded()))%" } ?? "—"
+        let value = monitor.codexValue
+        let menuValue = monitor.showCredits ? "\(value) cr" : value
         let marker = monitor.stale ? " · !" : ""
-        statusItem.button?.title = monitor.showNumbers ? "  \(disk)  ·  \(weekly)\(marker)" : ""
-        statusItem.button?.toolTip = "Disk: \(disk) available\nCodex: \(weekly) weekly remaining\(monitor.stale ? " (out of date)" : "")"
-        statusItem.button?.setAccessibilityLabel("Headroom. Disk \(disk) available. Codex \(weekly) weekly remaining\(monitor.stale ? ", out of date" : "").")
+        statusItem.button?.title = monitor.showNumbers ? "  \(disk)  ·  \(menuValue)\(marker)" : ""
+        statusItem.button?.toolTip = "Disk: \(disk) available\nCodex: \(value) \(monitor.codexCaption)\(monitor.stale ? " (out of date)" : "")"
+        statusItem.button?.setAccessibilityLabel("Headroom. Disk \(disk) available. Codex \(value) \(monitor.codexCaption)\(monitor.stale ? ", out of date" : "").")
     }
 
     @objc private func togglePopover() {

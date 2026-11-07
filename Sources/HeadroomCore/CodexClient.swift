@@ -10,7 +10,6 @@ public final class CodexClient {
     private var pending: [Int: CheckedContinuation<Data, Error>] = [:]
     private var timeouts: [Int: Task<Void, Never>] = [:]
     private var generation = UUID()
-    public var onUpdate: ((QuotaWindow) -> Void)?
 
     public init() {}
 
@@ -21,11 +20,15 @@ public final class CodexClient {
     }
 
     public func readWeekly() async throws -> QuotaWindow {
-        if process == nil { try await start() }
-        let data = try await request("account/rateLimits/read")
-        let response = try JSONDecoder().decode(QuotaResponse.self, from: data)
+        let response = try await readQuota()
         guard let weekly = response.weekly else { throw ReadingError.noWeeklyWindow }
         return weekly
+    }
+
+    public func readQuota() async throws -> QuotaResponse {
+        if process == nil { try await start() }
+        let data = try await request("account/rateLimits/read")
+        return try JSONDecoder().decode(QuotaResponse.self, from: data)
     }
 
     private func start() async throws {
@@ -103,13 +106,9 @@ public final class CodexClient {
                 } else {
                     finish(id, result: .failure(ReadingError.unavailable))
                 }
-            } else if object["method"] as? String == "account/rateLimits/updated",
-                      let params = object["params"],
-                      let data = try? JSONSerialization.data(withJSONObject: params),
-                      let response = try? JSONDecoder().decode(QuotaResponse.self, from: data),
-                      let weekly = response.weekly {
-                onUpdate?(weekly)
             }
+            // Update notifications can be sparse. Only full read responses replace
+            // the snapshot, so omitted credits cannot erase a known balance.
         }
     }
 
