@@ -50,6 +50,15 @@ struct CardView: View {
                     .fixedSize(horizontal: false, vertical: true).padding(.top, 14)
             }
 
+            if monitor.showPacing && !monitor.showCredits {
+                VStack(spacing: 9) {
+                    pacingRow("Daily pace", value: monitor.pacing?.dailyPace, unit: "percentage points of weekly allowance per day")
+                    pacingRow("Today remaining", value: monitor.pacing?.todayRemainingPercent, unit: "percent of today’s budget")
+                }
+                .padding(.top, 18)
+                .floatingDragSurface(isFloating)
+            }
+
             if !monitor.showCredits, let reset = monitor.weekly?.resetDate {
                 HStack {
                     Text("Next reset")
@@ -64,6 +73,17 @@ struct CardView: View {
                 Divider().padding(.vertical, 16)
                 Toggle("Show credits", isOn: $monitor.showCredits)
                     .toggleStyle(.switch).controlSize(.mini).padding(.bottom, 12)
+                if !monitor.showCredits {
+                    Toggle("Show pacing", isOn: $monitor.showPacing)
+                        .toggleStyle(.switch).controlSize(.mini).padding(.bottom, 12)
+                    if monitor.showPacing {
+                        Stepper(value: $monitor.reservePercent, in: 0...100) {
+                            Text("Reserve \(monitor.reservePercent)%")
+                        }
+                        .controlSize(.mini).font(.system(size: 11)).padding(.bottom, 12)
+                        .help("Weekly allowance to leave unused at reset")
+                    }
+                }
                 Toggle("Floating panel", isOn: Binding(get: { monitor.floating }, set: { _ in toggleFloating() }))
                     .toggleStyle(.switch).controlSize(.mini)
                 Toggle("Numbers in menu bar", isOn: $monitor.showNumbers)
@@ -84,6 +104,21 @@ struct CardView: View {
         .frame(width: 320)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.white.opacity(0.12)))
+    }
+
+    private func pacingRow(_ title: String, value: Double?, unit: String) -> some View {
+        HStack {
+            Text(title).foregroundStyle(.secondary)
+            Spacer()
+            Text(value.map { $0.formatted(.number.precision(.fractionLength(1))) + "%" } ?? "—")
+                .monospacedDigit()
+        }
+        .font(.system(size: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title + ": " + (value.map {
+            $0.formatted(.number.precision(.fractionLength(1))) + " " + unit
+        } ?? "unavailable"))
+        .help(title == "Daily pace" ? "Percentage points of weekly allowance per day until reset" : "Percent of today’s budget left. Resets at local midnight.")
     }
 
     private func metric(title: String, symbol: String, value: String, caption: String,

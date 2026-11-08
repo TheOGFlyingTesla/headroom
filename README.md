@@ -23,6 +23,18 @@ Turn on **Show credits** in the menu to replace the weekly percentage with credi
 
 Credit balances show up to two decimal places. They are credits, not a dollar amount. An unlimited balance shows ∞. Missing balances stay unavailable rather than becoming zero.
 
+## Adaptive pacing
+
+Turn on **Show pacing** in weekly allowance mode to see **Daily pace** and **Today remaining** in the card. The menu bar shows disk space, weekly allowance, and today’s remaining budget, such as `24 GB · 60% · 80.0% today`. Turning pacing off removes the extra daily budget from the menu bar. Daily pace is percentage points of your full weekly allowance per day. For example, 60% remaining with four days until reset gives a daily pace of 15%. Today remaining is the percentage of today’s budget left: it starts at 100%, counts down as you use the budget, and resets at local midnight. If no allowance remains above your reserve, it shows 0%.
+
+Daily pace divides the allowance still available by the exact time until reset and adjusts as you use more or less. Today remaining counts down against a budget set at the first reading of each local day. A light day leaves more for later days; overspending today does not immediately refill today's budget. Starting partway through a day prorates that day's budget. The last partial day can use everything left above your reserve.
+
+**Reserve** sets how much weekly allowance to leave at reset, from 0% to 100%, and defaults to 0%. Changing it recalculates the rest of today's budget. Pacing hides in credits mode and stays unavailable when weekly readings are missing, stale, or awaiting a new reset.
+
+For example, `80% today` means four fifths of today’s budget remains.
+
+The app saves one daily budget anchor locally so restarting does not refill today's budget. It does not save a growing usage history or make additional network requests. A new weekly window, time-zone change, or replenished allowance starts a new budget.
+
 ## Requirements
 
 - macOS 14 or later.
@@ -64,7 +76,7 @@ Disk space updates every 30 seconds. It uses macOS's available-capacity estimate
 
 Codex usage updates about once a minute, with slower retries when the connection fails. Headroom selects the seven-day quota window and shows the remaining percentage and next reset in allowance mode. Credit mode uses the balance from the same response, so switching displays adds no network requests. Only full read responses replace the readings; partial notifications cannot erase a known balance. Failed readings are marked as stale. If your account does not report the selected reading, Headroom says so.
 
-Headroom uses one installed Codex CLI helper over private pipes. It does not start model turns, read credential files, log account responses, or run a hosted backend. Account responses stay in memory. The CLI handles its own authentication, network connections, configuration, and storage. Headroom stores your display choice, menu bar preference, and floating-card position locally. Disk readings stay on your Mac. The Codex CLI makes the authenticated network requests needed to retrieve your account allowance.
+Headroom uses one installed Codex CLI helper over private pipes. It does not start model turns, read credential files, log account responses, or run a hosted backend. Full account responses stay in memory. The CLI handles its own authentication, network connections, configuration, and storage. Headroom stores your display choices, reserve, one daily pacing anchor, menu bar preference, and floating-card position locally. Disk readings stay on your Mac. The Codex CLI makes the authenticated network requests needed to retrieve your account allowance.
 
 Both the app and helper contribute to resource use. There is one tolerant refresh timer and no continuous animation. Measure on your own Mac with `python3 script/measure_idle.py` if you'd like to check the cost.
 

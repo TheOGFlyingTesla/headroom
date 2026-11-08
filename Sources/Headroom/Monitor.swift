@@ -18,6 +18,22 @@ final class Monitor: ObservableObject {
     @Published var showCredits = UserDefaults.standard.bool(forKey: "showCredits") {
         didSet { UserDefaults.standard.set(showCredits, forKey: "showCredits") }
     }
+    @Published var showPacing = UserDefaults.standard.bool(forKey: "showPacing") {
+        didSet {
+            UserDefaults.standard.set(showPacing, forKey: "showPacing")
+            updatePacing()
+        }
+    }
+    @Published var reservePercent = min(100, max(0, UserDefaults.standard.integer(forKey: "pacingReserve"))) {
+        didSet {
+            UserDefaults.standard.set(reservePercent, forKey: "pacingReserve")
+            updatePacing()
+        }
+    }
+    @Published private(set) var pacing: PacingReading?
+    private var planner = UserDefaults.standard.data(forKey: "pacingAnchor")
+        .flatMap { try? JSONDecoder().decode(PacingPlanner.self, from: $0) } ?? PacingPlanner()
+
     var codexValue: String {
         if showCredits { return credits?.formatted ?? "—" }
         return weekly.map { "\(Int($0.remaining.rounded()))%" } ?? "—"
@@ -44,6 +60,7 @@ final class Monitor: ObservableObject {
             Task { @MainActor in
                 guard let self, !self.sleeping else { return }
                 self.sampleDisk()
+                self.updatePacing()
                 if Date().timeIntervalSince(self.lastAttempt) >= self.retryInterval { self.refreshQuota() }
             }
         }
@@ -52,6 +69,7 @@ final class Monitor: ObservableObject {
 
     func opened() {
         sampleDisk()
+        updatePacing()
         if Date().timeIntervalSince(lastAttempt) >= 30 { refreshQuota() }
     }
 
@@ -72,6 +90,7 @@ final class Monitor: ObservableObject {
         quotaError = nil
         updatedAt = Date()
         retryInterval = 60
+        updatePacing()
     }
 
     private func refreshQuota() {
@@ -87,8 +106,22 @@ final class Monitor: ObservableObject {
                 if !sleeping {
                     quotaError = error.localizedDescription
                     retryInterval = min(300, retryInterval * 2)
+                    updatePacing()
                 }
             }
+        }
+    }
+
+    private func updatePacing() {
+        guard showPacing, !stale, let weekly, let reset = weekly.resetDate else {
+            pacing = nil
+            return
+        }
+        pacing = planner.update(remaining: weekly.remaining, reset: reset, now: Date(),
+                                reserve: Double(reservePercent))
+        if let data = try? JSONEncoder().encode(planner),
+           data != UserDefaults.standard.data(forKey: "pacingAnchor") {
+            UserDefaults.standard.set(data, forKey: "pacingAnchor")
         }
     }
 

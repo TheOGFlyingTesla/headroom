@@ -133,9 +133,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let value = monitor.codexValue
         let menuValue = monitor.showCredits ? "\(value) cr" : value
         let marker = monitor.stale ? " · !" : ""
-        statusItem.button?.title = monitor.showNumbers ? "  \(disk)  ·  \(menuValue)\(marker)" : ""
-        statusItem.button?.toolTip = "Disk: \(disk) available\nCodex: \(value) \(monitor.codexCaption)\(monitor.stale ? " (out of date)" : "")"
-        statusItem.button?.setAccessibilityLabel("Headroom. Disk \(disk) available. Codex \(value) \(monitor.codexCaption)\(monitor.stale ? ", out of date" : "").")
+        let showPacing = monitor.showPacing && !monitor.showCredits
+        func percentage(_ value: Double?) -> String {
+            value.map { $0.formatted(.number.precision(.fractionLength(1))) + "%" } ?? "—"
+        }
+        let daily = percentage(monitor.pacing?.dailyPace)
+        let today = percentage(monitor.pacing?.todayRemainingPercent)
+        let pacingTitle = showPacing ? "  ·  \(today) today" : ""
+        let pacingDetails = showPacing ? "\nDaily pace: \(daily) of weekly allowance per day\nToday remaining: \(today) of today’s budget" : ""
+        statusItem.button?.title = monitor.showNumbers ? "  \(disk)  ·  \(menuValue)\(pacingTitle)\(marker)" : ""
+        statusItem.button?.toolTip = "Disk: \(disk) available\nCodex: \(value) \(monitor.codexCaption)\(monitor.stale ? " (out of date)" : "")\(pacingDetails)"
+        statusItem.button?.setAccessibilityLabel("Headroom. Disk \(disk) available. Codex \(value) \(monitor.codexCaption)\(monitor.stale ? ", out of date" : "")." + pacingDetails)
+
     }
 
     @objc private func togglePopover() {
